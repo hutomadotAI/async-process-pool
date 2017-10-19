@@ -11,12 +11,11 @@ import random
 import traceback
 import uuid
 
-import hu_logging
 import asyncio_utils.async_process_queue as proc_q
 
 
 def _get_logger():
-    logger = hu_logging.get_logger('hu.process_pool', console_log_level=logging.WARNING)
+    logger = logging.getLogger('hu.process_pool')
     return logger
 
 

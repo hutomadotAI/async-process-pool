@@ -4,7 +4,7 @@ import asyncio
 import concurrent.futures
 import multiprocessing
 import queue
-import hu_logging
+
 import asyncio_utils.async_process_queue as a_queue
 
 import pytest

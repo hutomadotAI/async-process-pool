@@ -1,9 +1,9 @@
 """Tests for Process Pool"""
 # pylint: skip-file
 import asyncio
+import logging
 import multiprocessing
 
-import hu_logging
 import asyncio_utils.process_pool as a_pool
 import queue
 import pytest
@@ -14,7 +14,7 @@ def manager():
     return manager
 
 def _get_logger():
-    logger = hu_logging.get_logger('hu.process_pool.test')
+    logger = logging.getLogger('hu.process_pool.test')
     return logger
 
 

@@ -1,11 +1,8 @@
 import asyncio
 import logging
 
-import hu_logging
-
-
 def _get_logger():
-    logger = hu_logging.get_logger('hu.watchdog', console_log_level=logging.INFO)
+    logger = logging.getLogger('hu.watchdog')
     return logger
 
 

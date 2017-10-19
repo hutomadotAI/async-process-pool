@@ -3,14 +3,13 @@
 import asyncio
 import logging
 
-import hu_logging
 from asyncio_utils import Watchdog
 
 import pytest
 
 
 def _get_logger():
-    logger = hu_logging.get_logger('hu.watchdog.test', console_log_level=logging.INFO)
+    logger = logging.getLogger('hu.watchdog.test')
     return logger
 
 
