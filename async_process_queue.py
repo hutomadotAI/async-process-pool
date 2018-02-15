@@ -7,12 +7,14 @@ http://stackoverflow.com/q/24687061/694641
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+
 def create_async_process_queue(manager, loop, executor, maxsize):
     """Create an async process queue on a given manager"""
     queue = manager.Queue(maxsize=maxsize)
     proc_queue = _ProcQueue(queue)
     proc_queue.set_process_variables(loop, executor)
     return proc_queue
+
 
 def async_process_queue_worker(func, q_in, q_out, *args, **kwargs):
     """This is the worker function for a sub-process"""
@@ -24,6 +26,7 @@ def async_process_queue_worker(func, q_in, q_out, *args, **kwargs):
     q_in.set_process_variables(loop, executor)
     q_out.set_process_variables(loop, executor)
     loop.run_until_complete(func(q_in, q_out, *args, **kwargs))
+
 
 class _ProcQueue:
     def __init__(self, queue):
@@ -53,8 +56,10 @@ class _ProcQueue:
         self.__dict__.update(state)
 
     def __getattr__(self, name):
-        if name in ['qsize', 'empty', 'full', 'put', 'put_nowait',
-                    'get', 'get_nowait', 'close']:
+        if name in [
+                'qsize', 'empty', 'full', 'put', 'put_nowait', 'get',
+                'get_nowait', 'close'
+        ]:
             return getattr(self._queue, name)
         else:
             raise AttributeError("'%s' object has no attribute '%s'" %
@@ -62,11 +67,13 @@ class _ProcQueue:
 
     async def put_async(self, item, timeout=None):
         """Async put method"""
-        val = await self._loop.run_in_executor(self._executor, self.put, item, True, timeout)
+        await self._loop.run_in_executor(self._executor, self.put, item, True,
+                                         timeout)
 
     async def get_async(self, timeout=None):
         """Async get method"""
-        val = await self._loop.run_in_executor(self._executor, self.get, True, timeout)
+        val = await self._loop.run_in_executor(self._executor, self.get, True,
+                                               timeout)
         return val
 
     def cancel_join_thread(self):

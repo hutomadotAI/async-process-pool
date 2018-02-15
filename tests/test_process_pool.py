@@ -8,10 +8,12 @@ import asyncio_utils.process_pool as a_pool
 import queue
 import pytest
 
+
 @pytest.fixture
 def manager():
     manager = multiprocessing.Manager()
     return manager
+
 
 def _get_logger():
     logger = logging.getLogger('hu.process_pool.test')
@@ -80,20 +82,29 @@ class ProcessWorker(a_pool.ProcessWorkerABC):
         resp = a_pool.Response(msg, output=input * 4)
         return resp
 
+
 async def test_create_ok(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=1)
+    a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=1)
+
 
 async def test_create_fail_wrong_type(loop, manager):
     with pytest.raises(a_pool.ProcessPoolConfigurationError):
-        pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes='hi')
+        a_pool.AsyncProcessPool(
+            manager, "SimpleTest", loop, num_processes='hi')
+
 
 async def test_create_fail_0_size(loop, manager):
     with pytest.raises(a_pool.ProcessPoolConfigurationError):
-        pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=0)
+        a_pool.AsyncProcessPool(
+            manager, "SimpleTest", loop, num_processes=0)
+
 
 async def test_create_fail_20000_processes(loop, manager):
     with pytest.raises(a_pool.ProcessPoolConfigurationError):
-        pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=20000)
+        a_pool.AsyncProcessPool(
+            manager, "SimpleTest", loop, num_processes=20000)
+
 
 async def test_pool1_ping(loop, manager):
     pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop)
@@ -121,7 +132,8 @@ async def test_pool1_ping2(loop, manager):
 
 
 async def test_pool4_ping3(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=4)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=4)
     await pool.initialize_processes(ProcessWorker)
     msg = Ping()
     # use the higher level do_work function
@@ -146,7 +158,8 @@ async def test_pool1_fail(loop, manager):
 
 
 async def test_pool4_fail(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=4)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=4)
     await pool.initialize_processes(ProcessWorker)
     msg = FailMe()
     # use the low level messaging functions
@@ -191,7 +204,8 @@ async def test_pool1_jobfail1(loop, manager):
 
 
 async def test_pool8_ping4(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=8)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=8)
     await pool.initialize_processes(ProcessWorker)
     msgs = [Ping() for x in range(4)]
     # use the higher level do_worklist function
@@ -202,7 +216,8 @@ async def test_pool8_ping4(loop, manager):
 
 
 async def test_pool8_ping4_fail1(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=8)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=8)
     await pool.initialize_processes(ProcessWorker)
     msgs = [Ping() for x in range(4)]
     msgs.append(FailMe())
@@ -216,7 +231,8 @@ async def test_pool8_ping4_fail1(loop, manager):
 
 
 async def test_pool8_fail1_ping4(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=8)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=8)
     await pool.initialize_processes(ProcessWorker)
     msgs = [FailMe()]
     msgs += [Ping() for x in range(4)]
@@ -270,11 +286,13 @@ async def send_cancel_after_100ms(pool, loop, msg):
 
 
 async def test_cancel_3(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=1)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=1)
     await pool.initialize_processes(ProcessWorker)
 
     msgs = [DoWork(4, wait_for_cancel=True) for x in range(4)]
-    future1 = asyncio.ensure_future(send_cancel_after_100ms(pool, loop, msgs[0]), loop=loop)
+    future1 = asyncio.ensure_future(
+        send_cancel_after_100ms(pool, loop, msgs[0]), loop=loop)
     future2 = asyncio.ensure_future(pool.do_worklist(msgs), loop=loop)
     tasks = [future1, future2]
     combined_future = asyncio.gather(*tasks)
@@ -283,15 +301,20 @@ async def test_cancel_3(loop, manager):
 
     await pool.shutdown()
 
+
 async def test_cancel_from_q_in(loop, manager):
-    """This test can only pass if the cancelled message is handled while it is still queued. This is because every task
-    will block, we have only one execution process and we cancel the SECOND message that was queued."""
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, num_processes=1)
+    """This test can only pass if the cancelled message is handled while it is still queued.
+    This is because every task will block,
+    we have only one execution process
+    and we cancel the SECOND message that was queued."""
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, num_processes=1)
     await pool.initialize_processes(ProcessWorker)
 
     msgs = [DoWork(4, wait_for_cancel=True) for x in range(4)]
     tasks = []
-    cancel_future = asyncio.ensure_future(send_cancel_after_100ms(pool, loop, msgs[1]), loop=loop)
+    cancel_future = asyncio.ensure_future(
+        send_cancel_after_100ms(pool, loop, msgs[1]), loop=loop)
     tasks.append(cancel_future)
     tasks.append(asyncio.ensure_future(pool.do_worklist(msgs), loop=loop))
     combined_future = asyncio.gather(*tasks)
@@ -300,8 +323,10 @@ async def test_cancel_from_q_in(loop, manager):
 
     await pool.shutdown()
 
+
 async def test_pool_raises_if_overflow(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
     await pool.initialize_processes(ProcessWorker)
     msg = DoWork(4, wait_for_cancel=True)
     # This one will be run
@@ -313,16 +338,20 @@ async def test_pool_raises_if_overflow(loop, manager):
     with pytest.raises(queue.Full):
         await pool.send_message_in(msg, timeout=0.05)
 
+
 async def test_get_message_out_timeout(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
     await pool.initialize_processes(ProcessWorker)
 
     # Try and read message with 0.05s timeout
     with pytest.raises(queue.Empty):
         await pool.get_message_out(timeout=0.05)
 
+
 async def test_get_message_out_with_id_timeout(loop, manager):
-    pool = a_pool.AsyncProcessPool(manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
     await pool.initialize_processes(ProcessWorker)
 
     # Create message but never send it
@@ -330,6 +359,7 @@ async def test_get_message_out_with_id_timeout(loop, manager):
     # Therefore there can be no reply within 0.05s
     with pytest.raises(queue.Empty):
         await pool.get_message_out_with_id(msg, timeout=0.05)
+
 
 if __name__ == "__main__":
     pytest.main(args=['test_process_pool.py::test_pool8_ping4', '-s'])

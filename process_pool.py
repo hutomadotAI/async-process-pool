@@ -24,9 +24,11 @@ class Error(Exception):
     """Base exception for this module"""
     pass
 
+
 class ProcessPoolConfigurationError(Error):
     """Exception used to indicate Process Pool is invalidly configured"""
     pass
+
 
 class ProcessShutdownException(Error):
     """Exception used to end process"""
@@ -74,7 +76,8 @@ class Response(Message):
 class ErrorResponse(Response):
     """Error Response object, derives from Response"""
 
-    def __init__(self, msg_in_response_to: Message, error_description, **kwargs):
+    def __init__(self, msg_in_response_to: Message, error_description,
+                 **kwargs):
         super().__init__(msg_in_response_to, error=error_description, **kwargs)
 
 
@@ -174,7 +177,8 @@ def process_pool_worker_internal(pool, process_worker_type, **kwargs):
     executor = concurrent.futures.ThreadPoolExecutor()
     pool.set_process_variables(loop, executor)
     # start the process loop
-    loop.run_until_complete(worker_internal_async(process_worker_type, pool, loop, **kwargs))
+    loop.run_until_complete(
+        worker_internal_async(process_worker_type, pool, loop, **kwargs))
 
 
 class AsyncProcessPool:
@@ -185,14 +189,22 @@ class AsyncProcessPool:
     By default the pool is 1 process.
     """
 
-    def __init__(self, multiprocessing_manager, pool_name, asyncio_loop,
-                 num_processes: int=1, q_in_size=10, q_out_size=10):
+    def __init__(self,
+                 multiprocessing_manager,
+                 pool_name,
+                 asyncio_loop,
+                 num_processes: int = 1,
+                 q_in_size=10,
+                 q_out_size=10):
         if not isinstance(num_processes, int):
-            raise ProcessPoolConfigurationError("num_processes must be an integer")
+            raise ProcessPoolConfigurationError(
+                "num_processes must be an integer")
         if num_processes <= 0:
-            raise ProcessPoolConfigurationError("num_processes must be greater than 0")
+            raise ProcessPoolConfigurationError(
+                "num_processes must be greater than 0")
         if num_processes >= 10000:
-            raise ProcessPoolConfigurationError("num_processes must be less than than 10000")
+            raise ProcessPoolConfigurationError(
+                "num_processes must be less than than 10000")
 
         # The following are NOT picklable
         self.__thread_executor = concurrent.futures.ThreadPoolExecutor()
@@ -204,11 +216,14 @@ class AsyncProcessPool:
         self.__manager = multiprocessing_manager
         self.__num_processes = num_processes
         self.__q_in = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor, q_in_size)
+            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            q_in_size)
         self.__q_out = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor, q_out_size)
+            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            q_out_size)
         self.__q_cancel = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor, q_in_size)
+            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            q_in_size)
         self.__msgids_out_to_ignore = set()
         self.logger = _get_logger()
 
@@ -218,11 +233,9 @@ class AsyncProcessPool:
         state = {'normals': {}, 'queues': {}}
         self_dict = self.__dict__.copy()
         for name, item in self_dict.items():
-            if ('__thread_executor' in name or
-                    '__asyncio_loop' in name or
-                    '__processes' in name or
-                    '__manager' in name or
-                    'logger' in name):
+            if ('__thread_executor' in name or '__asyncio_loop' in name
+                    or '__processes' in name or '__manager' in name
+                    or 'logger' in name):
                 # we don't want unpickable objects
                 continue
             elif isinstance(item, proc_q._ProcQueue):
@@ -251,15 +264,15 @@ class AsyncProcessPool:
         # recreate the logger, as this can't be pickled
         self.logger = _get_logger()
 
-
     async def initialize_processes(self, process_worker_type, **kwargs):
         """Initialize the process pool"""
         for index in range(self.__num_processes):
             proc_name = "{}#{:02d}".format(self.pool_name, index)
-            proc = multiprocessing.Process(name=proc_name,
-                                           target=process_pool_worker_internal,
-                                           args=(self, process_worker_type),
-                                           kwargs=kwargs)
+            proc = multiprocessing.Process(
+                name=proc_name,
+                target=process_pool_worker_internal,
+                args=(self, process_worker_type),
+                kwargs=kwargs)
             proc.start()
             self.__processes.append(proc)
 
@@ -294,7 +307,7 @@ class AsyncProcessPool:
         while len(msg_ids) > 0:
             self.logger.debug('DoWorklist remaining: {}'.format(len(msg_ids)))
             item = await self.get_message_out()
-            if not hasattr(item, 're_msg_id') or not item.re_msg_id in msg_ids:
+            if not hasattr(item, 're_msg_id') or item.re_msg_id not in msg_ids:
                 # Not the message we are waiting for, repost it
                 await self.send_message_out(item)
                 await self._back_off_random_time()
@@ -307,12 +320,16 @@ class AsyncProcessPool:
             # if any job is a failure, raise it here
             if isinstance(item, ErrorResponse):
                 # ignore the other messages
-                self.logger.warning('Failed message {} with {} outstanding'.format(re_msg_id, len(msg_ids)))
+                self.logger.warning(
+                    'Failed message {} with {} outstanding'.format(
+                        re_msg_id, len(msg_ids)))
                 self.__msgids_out_to_ignore.update(msg_ids)
                 raise FailedJobError(item.error)
             if isinstance(item, CancelResponse):
                 # ignore the other messages
-                self.logger.warning('Cancelled message {} with {} outstanding'.format(re_msg_id, len(msg_ids)))
+                self.logger.warning(
+                    'Cancelled message {} with {} outstanding'.format(
+                        re_msg_id, len(msg_ids)))
                 self.__msgids_out_to_ignore.update(msg_ids)
                 raise JobCancelledError()
 
@@ -338,19 +355,24 @@ class AsyncProcessPool:
             # put the message back again
             await self.__q_out.put_async(item)
             raise ProcessShutdownException
-        if hasattr(item, 're_msg_id') and item.re_msg_id in self.__msgids_out_to_ignore:
+        if hasattr(
+                item,
+                're_msg_id') and item.re_msg_id in self.__msgids_out_to_ignore:
             self.logger.info('Ignoring message {}'.format(item.re_msg_id))
             self.__msgids_out_to_ignore.remove(item.re_msg_id)
             # Call again
             item = await self.get_message_out(timeout)
         return item
 
-    async def get_message_out_with_id(self, msg_id_match, timeout=None) -> Message:
+    async def get_message_out_with_id(self, msg_id_match,
+                                      timeout=None) -> Message:
         """Get message from output queue with matching ID"""
         while True:
-            self.logger.debug('Wait for message: msg_id {}'.format(msg_id_match))
+            self.logger.debug(
+                'Wait for message: msg_id {}'.format(msg_id_match))
             item = await self.get_message_out(timeout)
-            if not hasattr(item, 're_msg_id') or item.re_msg_id != msg_id_match:
+            if not hasattr(item,
+                           're_msg_id') or item.re_msg_id != msg_id_match:
                 self.logger.debug('Not found {}'.format(msg_id_match))
                 # Not the message we are waiting for, repost it
                 await self.send_message_out(item)
@@ -368,7 +390,7 @@ class AsyncProcessPool:
             # if got here we have non-error response, return it
             return item
 
-    async def send_message_in(self, msg: Message, timeout = 1.0):
+    async def send_message_in(self, msg: Message, timeout=1.0):
         """Async send method for input queue"""
         await self.__q_in.put_async(msg, timeout)
 
@@ -377,7 +399,8 @@ class AsyncProcessPool:
         await self.__q_out.put_async(msg)
 
     def send_message_out_sync(self, msg: Message):
-        """Synchronous send method for output queue. Use when in synchronous code and not able to await"""
+        """Synchronous send method for output queue. Use when in synchronous code
+        and not able to await"""
         self.__q_out.put(msg)
 
     async def send_cancel(self, msg_to_cancel: Message):
@@ -396,7 +419,8 @@ class AsyncProcessPool:
                 break
             if msg.msg_id == id_to_cancel:
                 # found the message we are looking for
-                self.logger.warning("send_cancel: found {} in q_in".format(id_to_cancel))
+                self.logger.warning(
+                    "send_cancel: found {} in q_in".format(id_to_cancel))
                 found_msg = True
             else:
                 msgs.append(msg)
@@ -411,7 +435,8 @@ class AsyncProcessPool:
             await self.__q_out.put_async(cancel_response)
         else:
             # not found in q_in, so post the cancel message
-            self.logger.warning("send_cancel: add {} to q_cancel".format(id_to_cancel))
+            self.logger.warning(
+                "send_cancel: add {} to q_cancel".format(id_to_cancel))
             await self.__q_cancel.put_async(id_to_cancel)
 
     def check_for_cancel(self, msg_to_cancel: Message):
@@ -440,7 +465,6 @@ class AsyncProcessPool:
         if found_msg:
             # we were told to cancel, raise the JobCancelledError
             raise JobCancelledError
-
 
     async def shutdown(self):
         """Async shutdown method"""
