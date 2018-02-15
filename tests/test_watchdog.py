@@ -5,8 +5,6 @@ import logging
 
 from asyncio_utils import Watchdog
 
-import pytest
-
 
 def _get_logger():
     logger = logging.getLogger('hu.watchdog.test')

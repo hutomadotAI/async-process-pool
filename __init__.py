@@ -1,4 +1,7 @@
 """Python standard __init__.py"""
+# flake8: noqa
+# The flake8 tool doesn't like what we're doing here in making these functions available
+# at top level. Pretty safe to just ignore the entire file as that's all this contains
 
 # This lists what will be seen outside of the actual directory
 # e.g. for tests
