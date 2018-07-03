@@ -1,5 +1,5 @@
 """Tests for Process Queue"""
-# pylint: skip-file
+# flake8: noqa
 import concurrent.futures
 import multiprocessing
 import queue
@@ -7,7 +7,6 @@ import queue
 import asyncio_utils.async_process_queue as a_queue
 
 import pytest
-
 
 async def test_queue_one(loop):
     # The following are NOT picklable

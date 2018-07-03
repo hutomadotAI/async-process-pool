@@ -1,5 +1,5 @@
 """Tests for Process Pool"""
-# pylint: skip-file
+# flake8: noqa
 import asyncio
 import logging
 import multiprocessing
@@ -7,7 +7,6 @@ import multiprocessing
 import asyncio_utils.process_pool as a_pool
 import queue
 import pytest
-
 
 @pytest.fixture
 def manager():
@@ -72,12 +71,14 @@ class ProcessWorker(a_pool.ProcessWorkerABC):
 
     @a_pool.job_runner
     async def do_work_fn(self, msg):
+        print("Started {}", msg)
         if msg.fail_me:
             raise RuntimeError("I agreed to fail this test")
         input = msg.input
         if msg.wait_for_cancel:
             while True:
-                await asyncio.sleep(0.1, self.asyncio_loop)
+                print("Not cancelled, sleeping")
+                await asyncio.sleep(0.5, self.asyncio_loop)
                 self.pool.check_for_cancel(msg)
         resp = a_pool.Response(msg, output=input * 4)
         return resp
@@ -280,7 +281,7 @@ async def test_cancel_2(loop, manager):
 async def send_cancel_after_100ms(pool, loop, msg):
     logger = _get_logger()
     logger.debug('In send_cancel_after_100ms - sleeping')
-    await asyncio.sleep(0.1, loop=loop)
+    await asyncio.sleep(0.5, loop=loop)
     logger.debug('In send_cancel_after_100ms - awake')
     await pool.send_cancel(msg)
 
@@ -314,7 +315,7 @@ async def test_cancel_from_q_in(loop, manager):
     msgs = [DoWork(4, wait_for_cancel=True) for x in range(4)]
     tasks = []
     cancel_future = asyncio.ensure_future(
-        send_cancel_after_100ms(pool, loop, msgs[1]), loop=loop)
+    send_cancel_after_100ms(pool, loop, msgs[1]), loop=loop)
     tasks.append(cancel_future)
     tasks.append(asyncio.ensure_future(pool.do_worklist(msgs), loop=loop))
     combined_future = asyncio.gather(*tasks)

@@ -1,10 +1,9 @@
 """Tests for watchdog """
-# pylint: skip-file
+# flake8: noqa
 import asyncio
 import logging
 
 from asyncio_utils import Watchdog
-
 
 def _get_logger():
     logger = logging.getLogger('hu.watchdog.test')
