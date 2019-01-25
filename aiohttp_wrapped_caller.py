@@ -23,7 +23,7 @@ class ExceptionWrappedCaller:
         except aiohttp.web_exceptions.HTTPException:
             # assume if we're throwing this that it's already logged
             raise
-        except Exception as exc:
+        except Exception:
             self.logger.exception("Unexpected exception in call")
 
             error_string = "Internal Server Error\n" + traceback.format_exc()

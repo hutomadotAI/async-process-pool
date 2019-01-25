@@ -16,7 +16,7 @@ async def aiohttp_log_error_middleware(request, handler):
     except aiohttp.web_exceptions.HTTPException:
         # assume if we're throwing this that it's already logged
         raise
-    except Exception as exc:
+    except Exception:
         _get_logger().exception("Unexpected exception in call")
 
         error_string = "Internal Server Error\n" + traceback.format_exc()
