@@ -506,7 +506,7 @@ class AsyncProcessPool:
     def _check_pool_healthy(self):
         not_alive_list = [True for proc in self.__processes if not proc.is_alive()]
         not_alive = len(not_alive_list)
-        self.logger.info("Pool processes: %d of %d healthy")
+        self.logger.info("Pool processes: %d of %d unhealthy", not_alive, len(self.__processes))
         if not_alive > 0:
             self.logger.warning("Raising PoolUnhealthyError!")
             raise PoolUnhealthyError
