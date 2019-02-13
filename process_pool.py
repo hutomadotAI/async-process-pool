@@ -35,6 +35,11 @@ class ProcessShutdownException(Error):
     pass
 
 
+class PoolUnhealthyError(Error):
+    """Exception used when pool is unhealthy due to crashed sub-process"""
+    pass
+
+
 # Messages
 class Message(object):
     """
@@ -131,7 +136,7 @@ class ProcessWorkerABC(abc.ABC):
                     await self.process_message(msg)
                 except ProcessShutdownException:
                     raise
-                except JobCancelledError as cancel:
+                except JobCancelledError:
                     # if a cancelled job, raise it
                     cancel_resp = CancelResponse(msg)
                     await self.pool.send_message_out(cancel_resp)
@@ -139,8 +144,8 @@ class ProcessWorkerABC(abc.ABC):
                     # if a chained failed job, pass the original
                     error_resp = ErrorResponse(msg, str(fail))
                     await self.pool.send_message_out(error_resp)
-                except Exception:  # pylint: disable=W0703
-                    # Disable pylint as we don't want the whole process to die
+                except Exception:
+                    # Catch exception as we don't want the whole process to die
                     description = traceback.format_exc()
                     error_resp = ErrorResponse(msg, description)
                     await self.pool.send_message_out(error_resp)
@@ -162,7 +167,7 @@ async def worker_internal_async(process_worker_type, pool, loop, **kwargs):
     async with process_worker_type(pool, loop) as process_worker:
         try:
             process_worker.set_data(kwargs)
-        except Exception as exc:
+        except Exception:
             logger = _get_logger()
             logger.exception("Failed to set data", exc_info=True)
         await process_worker.async_process_loop()
@@ -350,7 +355,15 @@ class AsyncProcessPool:
 
     async def get_message_out(self, timeout=None) -> Message:
         """Async get method for output queue"""
-        item = await self.__q_out.get_async(timeout)
+        get_task = asyncio.ensure_future(self.__q_out.get_async(timeout))
+        done = {}
+
+        # Check pool health every second
+        while get_task not in done:
+            self._check_pool_healthy()
+            done, pending = await asyncio.wait({get_task}, timeout=1.0)
+
+        item = get_task.result()
         if isinstance(item, ProcessShutdownMessage):
             # put the message back again
             await self.__q_out.put_async(item)
@@ -392,6 +405,7 @@ class AsyncProcessPool:
 
     async def send_message_in(self, msg: Message, timeout=1.0):
         """Async send method for input queue"""
+        self._check_pool_healthy()
         await self.__q_in.put_async(msg, timeout)
 
     async def send_message_out(self, msg: Message):
@@ -488,6 +502,14 @@ class AsyncProcessPool:
         sleep_time = random.uniform(0.01, 0.1)
         self.logger.debug('message miss, sleep for {}s'.format(sleep_time))
         await asyncio.sleep(sleep_time, loop=self.__asyncio_loop)
+
+    def _check_pool_healthy(self):
+        not_alive_list = [True for proc in self.__processes if not proc.is_alive()]
+        not_alive = len(not_alive_list)
+        self.logger.info("Pool processes: %d of %d healthy")
+        if not_alive > 0:
+            self.logger.warning("Raising PoolUnhealthyError!")
+            raise PoolUnhealthyError
 
 
 def job_runner(func):
