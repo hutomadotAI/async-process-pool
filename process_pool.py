@@ -360,7 +360,10 @@ class AsyncProcessPool:
 
         # Check pool health every second
         while get_task not in done:
-            self._check_pool_healthy()
+            if not self._check_pool_healthy():
+                get_task.cancel()
+                self.logger.warning("Raising PoolUnhealthyError!")
+                raise PoolUnhealthyError
             done, pending = await asyncio.wait({get_task}, timeout=1.0)
 
         item = get_task.result()
@@ -405,7 +408,9 @@ class AsyncProcessPool:
 
     async def send_message_in(self, msg: Message, timeout=1.0):
         """Async send method for input queue"""
-        self._check_pool_healthy()
+        if not self._check_pool_healthy():
+            self.logger.warning("Raising PoolUnhealthyError!")
+            raise PoolUnhealthyError
         await self.__q_in.put_async(msg, timeout)
 
     async def send_message_out(self, msg: Message):
@@ -504,12 +509,10 @@ class AsyncProcessPool:
         await asyncio.sleep(sleep_time, loop=self.__asyncio_loop)
 
     def _check_pool_healthy(self):
-        not_alive_list = [True for proc in self.__processes if not proc.is_alive()]
-        not_alive = len(not_alive_list)
-        self.logger.info("Pool processes: %d of %d unhealthy", not_alive, len(self.__processes))
-        if not_alive > 0:
-            self.logger.warning("Raising PoolUnhealthyError!")
-            raise PoolUnhealthyError
+        alive_list = [True for proc in self.__processes if proc.is_alive()]
+        alive = len(alive_list)
+        self.logger.info("Pool processes: %d of %d alive", alive, len(self.__processes))
+        return alive == len(self.__processes)
 
 
 def job_runner(func):

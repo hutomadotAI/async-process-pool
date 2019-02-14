@@ -362,6 +362,54 @@ async def test_get_message_out_with_id_timeout(loop, manager):
         await pool.get_message_out_with_id(msg, timeout=0.05)
 
 
+async def test_pool_unhealthy_on_dead_worker_1(loop, manager, mocker):
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    await pool.initialize_processes(ProcessWorker)
+
+    # Patch is_alive to indicate our worker process died
+    mock_call = mocker.patch('multiprocessing.Process.is_alive')
+    mock_call.return_value = False
+
+    msg = Ping()
+    with pytest.raises(a_pool.PoolUnhealthyError):
+        await pool.send_message_in(msg)
+
+async def test_pool_unhealthy_on_dead_worker_2(loop, manager, mocker):
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    await pool.initialize_processes(ProcessWorker)
+
+    # Patch is_alive to indicate our worker process died
+    mock_call = mocker.patch('multiprocessing.Process.is_alive')
+    mock_call.return_value = False
+
+    with pytest.raises(a_pool.PoolUnhealthyError):
+        await pool.get_message_out()
+
+async def test_pool_unhealthy_on_dead_worker_3(loop, manager, mocker):
+    pool = a_pool.AsyncProcessPool(
+        manager, "SimpleTest", loop, q_in_size=1, q_out_size=2)
+    await pool.initialize_processes(ProcessWorker)
+
+    with pytest.raises(a_pool.PoolUnhealthyError):
+        msg = DoWork("Hi", wait_for_cancel=True)
+        work_task = asyncio.ensure_future(pool.do_work(msg))
+        await asyncio.sleep(1)
+
+        # check that the work_task is still "running"
+        assert not work_task.done()
+
+        # NOW - once the message was sent and we waited a bit, now
+        # patch is_alive to indicate our worker process died
+        mock_call = mocker.patch('multiprocessing.Process.is_alive')
+        mock_call.return_value = False
+
+        # This should now cause the do_work operation to bomb
+        await work_task
+    # Shutdown pool to cleanup the hanging background process
+    await pool.shutdown()
+
 if __name__ == "__main__":
     pytest.main(args=['test_process_pool.py::test_pool8_ping4', '-s'])
     # pytest src/tests/test_wnet.py::test_multiprocess_3
