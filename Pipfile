@@ -12,6 +12,8 @@ pytest = "*"
 pytest-timeout = "*"
 pytest-cov = "*"
 pytest-mock = "*"
+setuptools = "*"
+wheel = "*"
 
 [requires]
 python_version = "3.7"
