@@ -15,6 +15,7 @@ pytest-cov = "*"
 pytest-mock = "*"
 setuptools = "*"
 wheel = "*"
+twine = "*"
 async_process_pool = {editable = true, path = "./src"}
 
 [requires]
