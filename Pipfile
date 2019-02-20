@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+
+[dev-packages]
+flake8 = "*"
+yapf = "*"
+pytest = "*"
+pytest-timeout = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+
+[requires]
+python_version = "3.7"
