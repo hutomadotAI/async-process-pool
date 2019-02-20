@@ -9,11 +9,13 @@ name = "pypi"
 flake8 = "*"
 yapf = "*"
 pytest = "*"
+pytest-asyncio = "*"
 pytest-timeout = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 setuptools = "*"
 wheel = "*"
+async_process_pool = {editable = true, path = "./src"}
 
 [requires]
 python_version = "3.7"

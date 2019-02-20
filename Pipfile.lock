@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e269ba1ea9fb45461ce7f55d219d11bc43c140d18d748eb39fdd049e76bfcbaa"
+            "sha256": "a387926ec9246a31fc28abebd3cb1f4d234c76d5edabb1d392fc0709ebb7cb7c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -17,6 +17,10 @@
     },
     "default": {},
     "develop": {
+        "async-process-pool": {
+            "editable": true,
+            "path": "./src"
+        },
         "atomicwrites": {
             "hashes": [
                 "sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4",
@@ -140,6 +144,14 @@
             ],
             "index": "pypi",
             "version": "==4.3.0"
+        },
+        "pytest-asyncio": {
+            "hashes": [
+                "sha256:9fac5100fd716cbecf6ef89233e8590a4ad61d729d1732e0a96b84182df1daaf",
+                "sha256:d734718e25cfc32d2bf78d346e99d33724deeba774cc4afdf491530c6184b63b"
+            ],
+            "index": "pypi",
+            "version": "==0.10.0"
         },
         "pytest-cov": {
             "hashes": [

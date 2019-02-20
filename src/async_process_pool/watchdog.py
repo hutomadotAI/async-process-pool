@@ -14,11 +14,9 @@ class Watchdog:
     def __init__(self,
                  timeout_seconds,
                  callback,
-                 asyncio_loop: asyncio.AbstractEventLoop,
                  name="Unnamed"):
         self.timeout_seconds = float(timeout_seconds)
         self.callback = callback
-        self.asyncio_loop = asyncio_loop
         self.logger = _get_logger()
         self.name = name
         self.__call_handle = None
@@ -28,7 +26,8 @@ class Watchdog:
     def reset_watchdog(self):
         """Reset the watchdog"""
         self.cancel()
-        self.__call_handle = self.asyncio_loop.call_later(
+        loop = asyncio.get_running_loop()
+        self.__call_handle = loop.call_later(
             self.timeout_seconds, self.__internal_callback)
 
     def cancel(self):
