@@ -48,7 +48,7 @@ def main(build_args):
     """Main function"""
     src_path = ROOT_DIR / "src"
     python_package(
-        'async-process-pool',
+        'async_process_pool',
         build_args.version,
         src_path)
 

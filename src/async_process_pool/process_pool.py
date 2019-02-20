@@ -11,7 +11,7 @@ import random
 import traceback
 import uuid
 
-import asyncio_utils.async_process_queue as proc_q
+import async_process_pool.async_process_queue as proc_q
 
 
 def _get_logger():
@@ -116,9 +116,8 @@ class JobCancelledError(Error):
 class ProcessWorkerABC(abc.ABC):
     """Process worker Abstract Base Class"""
 
-    def __init__(self, pool, asyncio_loop):
+    def __init__(self, pool):
         self.pool = pool
-        self.asyncio_loop = asyncio_loop
 
     # Support for async with - override these for initialization/shutdown
     async def __aenter__(self):
@@ -162,9 +161,9 @@ class ProcessWorkerABC(abc.ABC):
         pass
 
 
-async def worker_internal_async(process_worker_type, pool, loop, **kwargs):
+async def worker_internal_async(process_worker_type, pool, **kwargs):
     """This is the async loop for the sub-process"""
-    async with process_worker_type(pool, loop) as process_worker:
+    async with process_worker_type(pool) as process_worker:
         try:
             process_worker.set_data(kwargs)
         except Exception:
@@ -180,10 +179,10 @@ def process_pool_worker_internal(pool, process_worker_type, **kwargs):
     asyncio.set_event_loop(loop)
     # set up the queues to operate correctly on this process
     executor = concurrent.futures.ThreadPoolExecutor()
-    pool.set_process_variables(loop, executor)
+    pool.set_process_variables(executor)
     # start the process loop
     loop.run_until_complete(
-        worker_internal_async(process_worker_type, pool, loop, **kwargs))
+        worker_internal_async(process_worker_type, pool, **kwargs))
 
 
 class AsyncProcessPool:
@@ -197,7 +196,6 @@ class AsyncProcessPool:
     def __init__(self,
                  multiprocessing_manager,
                  pool_name,
-                 asyncio_loop,
                  num_processes: int = 1,
                  q_in_size=10,
                  q_out_size=10):
@@ -213,7 +211,6 @@ class AsyncProcessPool:
 
         # The following are NOT picklable
         self.__thread_executor = concurrent.futures.ThreadPoolExecutor()
-        self.__asyncio_loop = asyncio_loop
         self.__processes = []
 
         # These are picklable
@@ -221,13 +218,13 @@ class AsyncProcessPool:
         self.__manager = multiprocessing_manager
         self.__num_processes = num_processes
         self.__q_in = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            self.__manager, self.__thread_executor,
             q_in_size)
         self.__q_out = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            self.__manager, self.__thread_executor,
             q_out_size)
         self.__q_cancel = proc_q.create_async_process_queue(
-            self.__manager, self.__asyncio_loop, self.__thread_executor,
+            self.__manager, self.__thread_executor,
             q_in_size)
         self.__msgids_out_to_ignore = set()
         self.logger = _get_logger()
@@ -238,7 +235,7 @@ class AsyncProcessPool:
         state = {'normals': {}, 'queues': {}}
         self_dict = self.__dict__.copy()
         for name, item in self_dict.items():
-            if ('__thread_executor' in name or '__asyncio_loop' in name
+            if ('__thread_executor' in name
                     or '__processes' in name or '__manager' in name
                     or 'logger' in name):
                 # we don't want unpickable objects
@@ -281,13 +278,12 @@ class AsyncProcessPool:
             proc.start()
             self.__processes.append(proc)
 
-    def set_process_variables(self, loop, executor):
+    def set_process_variables(self, executor):
         """Set the variables that must be changed in each process"""
-        self.__asyncio_loop = loop
         self.__thread_executor = executor
-        self.__q_in.set_process_variables(loop, executor)
-        self.__q_out.set_process_variables(loop, executor)
-        self.__q_cancel.set_process_variables(loop, executor)
+        self.__q_in.set_process_variables(executor)
+        self.__q_out.set_process_variables(executor)
+        self.__q_cancel.set_process_variables(executor)
 
     def get_queue_status(self):
         """Get queue status (useful for testing)"""
@@ -506,7 +502,7 @@ class AsyncProcessPool:
         # Back off by random time in 0.01 to 0.1 second range to allow someone else to receive msg
         sleep_time = random.uniform(0.01, 0.1)
         self.logger.debug('message miss, sleep for {}s'.format(sleep_time))
-        await asyncio.sleep(sleep_time, loop=self.__asyncio_loop)
+        await asyncio.sleep(sleep_time)
 
     def _check_pool_healthy(self):
         alive_list = [True for proc in self.__processes if proc.is_alive()]

@@ -2,8 +2,11 @@
 # flake8: noqa
 import asyncio
 import logging
+import pytest
 
-from asyncio_utils import Watchdog
+from async_process_pool.watchdog import Watchdog
+
+pytestmark = pytest.mark.asyncio
 
 def _get_logger():
     logger = logging.getLogger('hu.watchdog.test')
@@ -20,26 +23,26 @@ class Callback:
         self.counter += 1
 
 
-async def test_watchdog_init(loop):
+async def test_watchdog_init():
     callback = Callback()
-    watchdog = Watchdog(0.05, callback, loop, "test1")
+    watchdog = Watchdog(0.05, callback, "test1")
     watchdog.reset_watchdog()
     watchdog.cancel()
 
 
-async def test_watchdog_fires(loop):
+async def test_watchdog_fires():
     callback = Callback()
-    watchdog = Watchdog(0.05, callback, loop, "test2")
+    watchdog = Watchdog(0.05, callback, "test2")
     watchdog.reset_watchdog()
-    await asyncio.sleep(0.15, loop=loop)
+    await asyncio.sleep(0.15)
     assert callback.counter == 1
 
 
-async def test_watchdog_resets(loop):
+async def test_watchdog_resets():
     callback = Callback()
-    watchdog = Watchdog(0.05, callback, loop, "test2")
+    watchdog = Watchdog(0.05, callback, "test2")
     watchdog.reset_watchdog()
     for ii in range(0, 5):
-        await asyncio.sleep(0.02, loop=loop)
+        await asyncio.sleep(0.02)
         watchdog.reset_watchdog()
     assert callback.counter == 0

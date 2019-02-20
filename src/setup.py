@@ -5,8 +5,8 @@ import sys
 # this is standard Python packaging from http://python-packaging.readthedocs.io
 from setuptools import setup
 
-if sys.version_info < (3, 5):
-    sys.exit('Sorry, Python < 3.5 is not supported')
+if sys.version_info < (3, 7):
+    sys.exit('Sorry, Python < 3.7 is not supported')
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,7 +27,7 @@ def find_version(version_file):
 
 
 setup(
-    name='async-process-pool',
-    version=find_version('async-process-pool/__version__.py'),
-    packages=['async-process-pool'],
+    name='async_process_pool',
+    version=find_version('async_process_pool/__version__.py'),
+    packages=['async_process_pool'],
     install_requires=[])
