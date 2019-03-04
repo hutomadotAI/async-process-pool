@@ -15,8 +15,7 @@ SCRIPT_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 def find_version(version_file):
     with version_file.open() as fp:
         version_content = fp.read()
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_content, re.M)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_content, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
@@ -24,7 +23,6 @@ def find_version(version_file):
 
 with (SCRIPT_DIR / "README.md").open() as fp:
     long_description = fp.read()
-
 
 setup(
     name='async_process_pool',
@@ -36,4 +34,10 @@ setup(
     url='https://github.com/hutomadotAI/async-process-pool',
     author='Paul Annetts',
     author_email='paul@hutoma.ai',
-    install_requires=[])
+    install_requires=[],
+    classifiers=[
+        "Development Status :: 4 - Beta", "Framework :: AsyncIO",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.7",
+        "Operating System :: OS Independent"
+    ])
